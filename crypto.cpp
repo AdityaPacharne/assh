@@ -2,6 +2,8 @@
 #include<iostream>
 
 int main() {
+
+
     // Creating big prime p variable
     mp_int p;
     mp_err mp_initialize = mp_init(&p);
@@ -13,13 +15,16 @@ int main() {
         printf("Error reading radix: %s\n", mp_error_to_string(error));
     }
 
-    /*char output[1024];*/
-    /*size_t count;*/
-    /*mp_err convertToString = mp_to_radix(&a, output, sizeof(output), &count, 10);*/
-    /*printf("Big Number: %s\n", output);*/
-    /*printf("Size: %zu\n", count);*/
 
-    // Creating private key
+    //Creating g = 2
+    mp_int g;
+    mp_err g_initialize = mp_init_i32(&g, 2);
+    if(g_initialize != MP_OKAY){
+        printf("Error initializing g: %s\n", mp_error_to_string(g_initialize));
+    }
+
+
+    // Creating private key A
     mp_int private_key_a;
     mp_err private_key_initialize_a = mp_init(&private_key_a);
     if(private_key_initialize_a != MP_OKAY){
@@ -30,6 +35,8 @@ int main() {
         printf("Error while initializing private_key_a with random value: %s\n", mp_error_to_string(random_initialize_a));
     }
 
+
+    // Creating private key B
     mp_int private_key_b;
     mp_err private_key_initialize_b = mp_init(&private_key_b);
     if(private_key_initialize_b != MP_OKAY){
@@ -40,12 +47,6 @@ int main() {
         printf("Error while initializing private_key_b with random value: %s\n", mp_error_to_string(random_initialize_b));
     }
 
-    //Creating g = 2
-    mp_int g;
-    mp_err g_initialize = mp_init_i32(&g, 2);
-    if(g_initialize != MP_OKAY){
-        printf("Error initializing g: %s\n", mp_error_to_string(g_initialize));
-    }
 
     //Creating public key A
     mp_int public_key_a;
@@ -58,6 +59,7 @@ int main() {
         printf("Error while calculating public_key_a: %s\n", mp_error_to_string(public_key_expt_initialize_a));
     }
 
+
     //Creating public key B
     mp_int public_key_b;
     mp_err public_key_initialize_b = mp_init(&public_key_b);
@@ -69,20 +71,48 @@ int main() {
         printf("Error while calculating public_key_b: %s\n", mp_error_to_string(public_key_expt_initialize_b));
     }
 
-    char output[1024];
-    size_t public_key_size;
-    mp_err convertPublicKey = mp_to_radix(&public_key, output, sizeof(output), &public_key_size, 10);
-    if(convertPublicKey != MP_OKAY){
-        printf("Error while coverting public key to radix: %s\n", mp_error_to_string(convertPublicKey));
+    
+    //Creating shared key A
+    mp_int shared_key_a;
+    mp_err shared_key_initialize_a = mp_init(&shared_key_a);
+    if(shared_key_initialize_a != MP_OKAY){
+        printf("Error initializing shared_key_a: %s\n", mp_error_to_string(shared_key_initialize_a));
     }
-    printf("Public Key: %s\n", output);
-    printf("Size of Public Key: %zu\n", public_key_size);
+    mp_err shared_key_expt_initialize_a = mp_exptmod(&public_key_b, &private_key_a, &p, &shared_key_a);
+    if(shared_key_expt_initialize_a != MP_OKAY){
+        printf("Error while calculating shared_key_a: %s\n", mp_error_to_string(shared_key_expt_initialize_a));
+    }
+
+    mp_int shared_key_b;
+    mp_err shared_key_initialize_b = mp_init(&shared_key_b);
+    if(shared_key_initialize_b != MP_OKAY){
+        printf("Error initializing shared_key_b: %s\n", mp_error_to_string(shared_key_initialize_b));
+    }
+    mp_err shared_key_expt_initialize_b = mp_exptmod(&public_key_a, &private_key_b, &p, &shared_key_b);
+    if(shared_key_expt_initialize_b != MP_OKAY){
+        printf("Error while calculating shared_key_b: %s\n", mp_error_to_string(shared_key_expt_initialize_b));
+    }
+
+    mp_ord answer = mp_cmp(&shared_key_a, &shared_key_b);
+    std::cout << answer << '\n';
 
 
+    /*char output[1024];*/
+    /*size_t public_key_size;*/
+    /*mp_err convertPublicKey = mp_to_radix(&public_key, output, sizeof(output), &public_key_size, 10);*/
+    /*if(convertPublicKey != MP_OKAY){*/
+    /*    printf("Error while coverting public key to radix: %s\n", mp_error_to_string(convertPublicKey));*/
+    /*}*/
+    /*printf("Public Key: %s\n", output);*/
+    /*printf("Size of Public Key: %zu\n", public_key_size);*/
 
     mp_clear(&p);
     mp_clear(&g);
-    mp_clear(&private_key);
-    mp_clear(&public_key);
+    mp_clear(&private_key_a);
+    mp_clear(&private_key_b);
+    mp_clear(&public_key_a);
+    mp_clear(&public_key_b);
+    mp_clear(&shared_key_a);
+    mp_clear(&shared_key_b);
     return 0;
 }
