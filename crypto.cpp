@@ -1,114 +1,76 @@
 #include<tommath.h>
 #include<iostream>
 
-int main() {
+void fetchValueOfGenerator(mp_int& generator){
+    /*
+     * Initializes a generator
+     * Sets its value to 2 according to rfc 7919
+     */
+    mp_err generator_initialize = mp_init_i32(&generator, 2);
+    if(generator_initialize != MP_OKAY){
+        printf("Error initializing g: %s\n", mp_error_to_string(generator_initialize));
+        exit(1);
+    }
+}
 
+void fetchValueOfBigPrimeNumber(mp_int& bigPrimeNumber) {
+    /*
+     * Initializes a big prime number for mod operator later in public key function
+     * This big prime is taken from rfc 7919 and is stored in the environment variables
+     */
     const char* pENV = "pVariable";
-
     const char* pValue = getenv(pENV);
 
-    mp_int p;
-    mp_err mp_initialize = mp_init(&p);
-    if(mp_initialize != MP_OKAY){
-        printf("Error initializing mp: %s\n", mp_error_to_string(mp_initialize));
-    }
-    mp_err error = mp_read_radix(&p, pValue, 16);
-    if(error != MP_OKAY){
-        printf("Error reading radix: %s\n", mp_error_to_string(error));
+    if(mp_init(&bigPrimeNumber) != MP_OKAY){
+        printf("Error initializing Big Prime\n");
     }
 
+    mp_err readingPrimeFromENV = mp_read_radix(&bigPrimeNumber, pValue, 16);
+    if(readingPrimeFromENV != MP_OKAY){
+        printf("Error reading Big Prime: %s\n", mp_error_to_string(readingPrimeFromENV));
+        exit(1);
+    }
+}
 
-    mp_int g;
-    mp_err g_initialize = mp_init_i32(&g, 2);
-    if(g_initialize != MP_OKAY){
-        printf("Error initializing g: %s\n", mp_error_to_string(g_initialize));
+void generatePrivateKey(mp_int& private_key){
+    /*
+     * Intializes a private_key
+     * Sets its value to a 64 digit random value
+     */
+    if(mp_init(&private_key) != MP_OKAY){
+        printf("Error initializing private_key\n");
+        exit(1);
     }
 
-
-    mp_int private_key_a;
-    mp_err private_key_initialize_a = mp_init(&private_key_a);
-    if(private_key_initialize_a != MP_OKAY){
-        printf("Error initializing private_key_a: %s\n", mp_error_to_string(private_key_initialize_a));
+    mp_err private_key_random_initialize = mp_rand(&private_key, 64);
+    if(private_key_random_initialize != MP_OKAY){
+        printf("Error setting random value to private_key: %s\n", mp_error_to_string(private_key_random_initialize));
+        exit(1);
     }
-    mp_err random_initialize_a = mp_rand(&private_key_a, 64);
-    if(random_initialize_a != MP_OKAY){
-        printf("Error while initializing private_key_a with random value: %s\n", mp_error_to_string(random_initialize_a));
-    }
+}
 
-
-    mp_int private_key_b;
-    mp_err private_key_initialize_b = mp_init(&private_key_b);
-    if(private_key_initialize_b != MP_OKAY){
-        printf("Error initializing private_key_b: %s\n", mp_error_to_string(private_key_initialize_b));
-    }
-    mp_err random_initialize_b = mp_rand(&private_key_b, 64);
-    if(random_initialize_b != MP_OKAY){
-        printf("Error while initializing private_key_b with random value: %s\n", mp_error_to_string(random_initialize_b));
+void generatePublicKey(mp_int& private_key, mp_int& public_key){
+    /*
+     * Initializes a public_key
+     * Store the output of equation ( g^a mod p ; where a is our private_key )
+     */
+    if(mp_init(&public_key) != MP_OKAY){
+        printf("Error initializing public_key\n");
+        exit(1);
     }
 
+    mp_int generator;
+    fetchValueOfGenerator(generator);
 
-    mp_int public_key_a;
-    mp_err public_key_initialize_a = mp_init(&public_key_a);
-    if(public_key_initialize_a != MP_OKAY){
-        printf("Error initializing public_key_a: %s\n", mp_error_to_string(public_key_initialize_a));
-    }
-    mp_err public_key_expt_initialize_a = mp_exptmod(&g, &private_key_a, &p, &public_key_a);
-    if(public_key_expt_initialize_a != MP_OKAY){
-        printf("Error while calculating public_key_a: %s\n", mp_error_to_string(public_key_expt_initialize_a));
-    }
+    mp_int bigPrime;
+    fetchValueOfBigPrimeNumber(bigPrime);
 
-
-    mp_int public_key_b;
-    mp_err public_key_initialize_b = mp_init(&public_key_b);
-    if(public_key_initialize_b != MP_OKAY){
-        printf("Error initializing public_key_b: %s\n", mp_error_to_string(public_key_initialize_b));
-    }
-    mp_err public_key_expt_initialize_b = mp_exptmod(&g, &private_key_b, &p, &public_key_b);
-    if(public_key_expt_initialize_b != MP_OKAY){
-        printf("Error while calculating public_key_b: %s\n", mp_error_to_string(public_key_expt_initialize_b));
-    }
-
+    mp_err public_key_exptmod_initialize = mp_exptmod(&generator, &private_key, &bigPrime, &public_key);
+    if(public_key_exptmod_initialize != MP_OKAY){
+        printf("Error while calculating public_key: %s\n", mp_error_to_string(public_key_exptmod_initialize));
+        exit(1);
+    } 
     
-    mp_int shared_key_a;
-    mp_err shared_key_initialize_a = mp_init(&shared_key_a);
-    if(shared_key_initialize_a != MP_OKAY){
-        printf("Error initializing shared_key_a: %s\n", mp_error_to_string(shared_key_initialize_a));
-    }
-    mp_err shared_key_expt_initialize_a = mp_exptmod(&public_key_b, &private_key_a, &p, &shared_key_a);
-    if(shared_key_expt_initialize_a != MP_OKAY){
-        printf("Error while calculating shared_key_a: %s\n", mp_error_to_string(shared_key_expt_initialize_a));
-    }
-
-    mp_int shared_key_b;
-    mp_err shared_key_initialize_b = mp_init(&shared_key_b);
-    if(shared_key_initialize_b != MP_OKAY){
-        printf("Error initializing shared_key_b: %s\n", mp_error_to_string(shared_key_initialize_b));
-    }
-    mp_err shared_key_expt_initialize_b = mp_exptmod(&public_key_a, &private_key_b, &p, &shared_key_b);
-    if(shared_key_expt_initialize_b != MP_OKAY){
-        printf("Error while calculating shared_key_b: %s\n", mp_error_to_string(shared_key_expt_initialize_b));
-    }
-
-    mp_ord answer = mp_cmp(&shared_key_a, &shared_key_b);
-    std::cout << answer << '\n';
-
-
-    /*char output[1024];*/
-    /*size_t public_key_size;*/
-    /*mp_err convertPublicKey = mp_to_radix(&public_key, output, sizeof(output), &public_key_size, 10);*/
-    /*if(convertPublicKey != MP_OKAY){*/
-    /*    printf("Error while coverting public key to radix: %s\n", mp_error_to_string(convertPublicKey));*/
-    /*}*/
-    /*printf("Public Key: %s\n", output);*/
-    /*printf("Size of Public Key: %zu\n", public_key_size);*/
-
-    mp_clear(&p);
-    mp_clear(&g);
-    mp_clear(&private_key_a);
-    mp_clear(&private_key_b);
-    mp_clear(&public_key_a);
-    mp_clear(&public_key_b);
-    mp_clear(&shared_key_a);
-    mp_clear(&shared_key_b);
-    return 0;
+    mp_clear(&generator);
+    mp_clear(&bigPrime);
 }
