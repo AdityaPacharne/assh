@@ -1,4 +1,3 @@
-#include<iostream>
 #include<tommath.h>
 #include<sys/socket.h>
 #include<sys/types.h>
@@ -6,17 +5,18 @@
 #include<unistd.h>
 #include "crypto.cpp"
 
+#define PORT "14641"
+
 int main() {
     
     struct addrinfo hints;
     struct addrinfo *results;
-    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
 
-    int fetch_address_info = getaddrinfo("127.0.0.1", "8080", &hints, &results);
+    int fetch_address_info = getaddrinfo("127.0.0.1", PORT, &hints, &results);
     if(fetch_address_info != 0){
         fprintf(stderr, "Error while fetching address info: %s\n", gai_strerror(fetch_address_info));
         exit(1);
@@ -28,7 +28,7 @@ int main() {
                             addrinfo_node->ai_protocol);
         if(sockfd == -1){
             fprintf(stderr, "Error while creating a socket\n");
-            exit(1);
+            continue;
         }
 
         int socket_connect = connect(sockfd,
@@ -53,9 +53,9 @@ int main() {
             fprintf(stderr, "Error while sending data through socket\n");
         }
 
-        uint8_t receiver_public_key_buffer[256];
+        uint8_t server_public_key_buffer[256];
 
-        int recv_status = recv(sockfd, receiver_public_key_buffer, 256, MSG_WAITALL);
+        int recv_status = recv(sockfd, server_public_key_buffer, 256, MSG_WAITALL);
         if(recv_status == 0){
             printf("Connection Closed...\n");
             exit(0);
@@ -65,13 +65,15 @@ int main() {
             exit(1);
         }
 
-        mp_int receiver_public_key = buffer_to_mp(receiver_public_key_buffer, recv_status);
+        mp_int server_public_key = buffer_to_mp(server_public_key_buffer, recv_status);
 
-        mp_int shared_key = calculate_shared_key(&receiver_public_key, &private_key);
+        mp_int shared_key = calculate_shared_key(server_public_key, private_key);
+
+        view_mp(shared_key);
 
         mp_clear(&private_key);
         mp_clear(&public_key);
-        mp_clear(&receiver_public_key);
+        mp_clear(&server_public_key);
         mp_clear(&shared_key);
         close(sockfd);
     }

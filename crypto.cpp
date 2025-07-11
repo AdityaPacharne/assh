@@ -90,29 +90,29 @@ size_t mp_to_buffer(mp_int& public_key, uint8_t* public_key_buffer){
     return public_key_written;
 }
 
-mp_int buffer_to_mp(uint8_t* receiver_public_key_buffer, int recv_size){
+mp_int buffer_to_mp(uint8_t* peer_public_key_buffer, int recv_size){
     /*
-     * Initializes receiver_public_key
+     * Initializes peer_public_key
      * Converts the buffer to mp_int for further calculations
      */
-    mp_int receiver_public_key;
-    if(mp_init(&receiver_public_key) != MP_OKAY){
-        fprintf(stderr, "Error while initializing receiver_public_key\n"); 
+    mp_int peer_public_key;
+    if(mp_init(&peer_public_key) != MP_OKAY){
+        fprintf(stderr, "Error while initializing peer_public_key\n"); 
         exit(1);
     }
-    mp_err convert_to_ubin = mp_from_ubin(&receiver_public_key, receiver_public_key_buffer, recv_size);
+    mp_err convert_to_ubin = mp_from_ubin(&peer_public_key, peer_public_key_buffer, recv_size);
     if(convert_to_ubin != MP_OKAY){
-        fprintf(stderr, "Error while converting receiver's public key: %s\n", convert_to_ubin);
+        fprintf(stderr, "Error while converting peer's public key: %s\n", mp_error_to_string(convert_to_ubin));
         exit(1);
     }
-    return receiver_public_key;
+    return peer_public_key;
 }
 
-mp_int calculate_shared_key(mp_int& receiver_public_key, mp_int& private_key){
+mp_int calculate_shared_key(mp_int& peer_public_key, mp_int& private_key){
     /*
      * Creates and initializes shared_key
      * Calculated shared key by expt y^b where
-     * y is receiver_public_key and
+     * y is peer_public_key and
      * b is private_key
      * thereby created shared_key = g^(ab) mod p
      */
@@ -122,10 +122,27 @@ mp_int calculate_shared_key(mp_int& receiver_public_key, mp_int& private_key){
         exit(1);
     }
 
-    mp_err shared_key_expt = mp_expt_n(&receiver_public_key, &private_key, &shared_key);
+    mp_int big_prime;
+    fetch_value_of_big_prime_number(big_prime);
+    mp_err shared_key_expt = mp_exptmod(&peer_public_key, &private_key, &big_prime, &shared_key);
     if(shared_key_expt != MP_OKAY){
-        fprinf(stderr, "Error while calculating shared key: %s\n", shared_key_expt);
+        fprintf(stderr, "Error while calculating shared key: %s\n", mp_error_to_string(shared_key_expt));
         exit(1);
     }
+
+    mp_clear(&big_prime);
+
     return shared_key;
+}
+
+void view_mp(mp_int& mp_tobe_viewed){
+    /*
+     */
+    char buffer[1024];
+    size_t written;
+    mp_err view_radix = mp_to_radix(&mp_tobe_viewed, buffer, 1024, &written, 16);
+    if(view_radix != MP_OKAY){
+        fprintf(stderr, "Error while converting to radix: %s\n", mp_error_to_string(view_radix));
+    }
+    printf("Radix: \n%s\n", buffer);
 }
