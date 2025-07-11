@@ -2,6 +2,9 @@
 #include<tommath.h>
 #include<sys/socket.h>
 #include<sys/types.h>
+#include<netdb.h>
+#include<unistd.h>
+#include "crypto.cpp"
 
 int main() {
     
@@ -13,7 +16,7 @@ int main() {
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
 
-    int fetch_address_info = getaddrinfo(IP, PORT, &hints, &results);
+    int fetch_address_info = getaddrinfo("127.0.0.1", "8080", &hints, &results);
     if(fetch_address_info != 0){
         fprintf(stderr, "Error while fetching address info: %s\n", gai_strerror(fetch_address_info));
         exit(1);
@@ -30,17 +33,17 @@ int main() {
 
         int socket_connect = connect(sockfd,
                                     addrinfo_node->ai_addr,
-                                    addrinfo_node->ai_addrlen));
+                                    addrinfo_node->ai_addrlen);
         if(socket_connect == -1){
             fprintf(stderr, "Error while connecting to a socket\n");
             exit(1);
         }
 
         mp_int private_key;
-        generate_private_key(&private_key);
+        generate_private_key(private_key);
 
         mp_int public_key;
-        generate_public_key(&private_key, &public_key);
+        generate_public_key(private_key, public_key);
 
         uint8_t public_key_buffer[256];
         size_t public_key_written = mp_to_buffer(public_key, public_key_buffer);
@@ -50,8 +53,9 @@ int main() {
             fprintf(stderr, "Error while sending data through socket\n");
         }
 
-        mp_int receiver_public_key;
-        int recv_status = recv(sockfd, &receiver_public_key, x, MSG_WAITALL);
+        uint8_t receiver_public_key_buffer[256];
+
+        int recv_status = recv(sockfd, receiver_public_key_buffer, 256, MSG_WAITALL);
         if(recv_status == 0){
             printf("Connection Closed...\n");
             exit(0);
@@ -61,10 +65,15 @@ int main() {
             exit(1);
         }
 
+        mp_int receiver_public_key = buffer_to_mp(receiver_public_key_buffer, recv_status);
 
+        mp_int shared_key = calculate_shared_key(&receiver_public_key, &private_key);
 
         mp_clear(&private_key);
         mp_clear(&public_key);
+        mp_clear(&receiver_public_key);
+        mp_clear(&shared_key);
+        close(sockfd);
     }
 
     freeaddrinfo(results);

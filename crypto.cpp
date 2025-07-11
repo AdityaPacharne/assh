@@ -89,3 +89,43 @@ size_t mp_to_buffer(mp_int& public_key, uint8_t* public_key_buffer){
     }
     return public_key_written;
 }
+
+mp_int buffer_to_mp(uint8_t* receiver_public_key_buffer, int recv_size){
+    /*
+     * Initializes receiver_public_key
+     * Converts the buffer to mp_int for further calculations
+     */
+    mp_int receiver_public_key;
+    if(mp_init(&receiver_public_key) != MP_OKAY){
+        fprintf(stderr, "Error while initializing receiver_public_key\n"); 
+        exit(1);
+    }
+    mp_err convert_to_ubin = mp_from_ubin(&receiver_public_key, receiver_public_key_buffer, recv_size);
+    if(convert_to_ubin != MP_OKAY){
+        fprintf(stderr, "Error while converting receiver's public key: %s\n", convert_to_ubin);
+        exit(1);
+    }
+    return receiver_public_key;
+}
+
+mp_int calculate_shared_key(mp_int& receiver_public_key, mp_int& private_key){
+    /*
+     * Creates and initializes shared_key
+     * Calculated shared key by expt y^b where
+     * y is receiver_public_key and
+     * b is private_key
+     * thereby created shared_key = g^(ab) mod p
+     */
+    mp_int shared_key;
+    if(mp_init(&shared_key) != MP_OKAY){
+        fprintf(stderr, "Error while initializing shared_key\n");
+        exit(1);
+    }
+
+    mp_err shared_key_expt = mp_expt_n(&receiver_public_key, &private_key, &shared_key);
+    if(shared_key_expt != MP_OKAY){
+        fprinf(stderr, "Error while calculating shared key: %s\n", shared_key_expt);
+        exit(1);
+    }
+    return shared_key;
+}
