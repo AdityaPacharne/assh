@@ -1,4 +1,5 @@
 #include<tommath.h>
+#include<cstdlib>
 
 void fetch_value_of_generator(mp_int& generator){
     /*
@@ -83,7 +84,7 @@ size_t mp_to_buffer(mp_int& public_key, uint8_t* public_key_buffer){
     size_t public_key_written;
     mp_err ubin_convert = mp_to_ubin(&public_key, public_key_buffer, public_key_maxlen, &public_key_written);
     if(ubin_convert != MP_OKAY){
-        fprintf(stderr, "Error while converting mp public_key to buffer: %s\n", mp_to_error_string(ubin_convert));
+        fprintf(stderr, "Error while converting mp public_key to buffer: %s\n", mp_error_to_string(ubin_convert));
         exit(1);
     }
     return public_key_written;
