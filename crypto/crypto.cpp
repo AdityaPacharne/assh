@@ -137,6 +137,7 @@ mp_int calculate_shared_key(mp_int& peer_public_key, mp_int& private_key){
 
 void view_mp(mp_int& mp_tobe_viewed){
     /*
+     * Prints the mp_int taken as input by converting it to buffer
      */
     char buffer[1024];
     size_t written;

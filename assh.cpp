@@ -1,9 +1,11 @@
 #include<tommath.h>
+#include<iostream>
 #include<sys/socket.h>
 #include<sys/types.h>
 #include<netdb.h>
 #include<unistd.h>
-#include "crypto.cpp"
+#include "crypto/crypto.h"
+#include "crypto/hashing/sha256.h"
 
 #define PORT "14641"
 
@@ -68,6 +70,12 @@ int main() {
         mp_int server_public_key = buffer_to_mp(server_public_key_buffer, recv_status);
 
         mp_int shared_key = calculate_shared_key(server_public_key, private_key);
+
+        uint8_t shared_key_buffer[256];
+        size_t shared_key_written = mp_to_buffer(shared_key, shared_key_buffer);
+        const char* shared_key_char = reinterpret_cast<const char*>(shared_key_buffer);
+        std::string hashed = sha256(std::string(shared_key_char, shared_key_written));
+        std::cout << "Shared Key Char: " << hashed << '\n';
 
         view_mp(shared_key);
 
