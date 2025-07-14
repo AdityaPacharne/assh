@@ -7,6 +7,8 @@
 #include "crypto/crypto.h"
 #include "crypto/hashing/sha256.h"
 
+using namespace std;
+
 #define PORT "14641"
 
 int main() {
@@ -74,10 +76,41 @@ int main() {
         uint8_t shared_key_buffer[256];
         size_t shared_key_written = mp_to_buffer(shared_key, shared_key_buffer);
         const char* shared_key_char = reinterpret_cast<const char*>(shared_key_buffer);
-        std::string hashed = sha256(std::string(shared_key_char, shared_key_written));
-        std::cout << "Shared Key Char: " << hashed << '\n';
+        std::string symmetric_key = sha256(std::string(shared_key_char, shared_key_written));
+        /*std::cout << "Shared Key Char: " << symmetric_key << '\n';*/
 
-        view_mp(shared_key);
+        /*view_mp(shared_key);*/
+
+        char* additional_text = "YOOOO";
+        int additional_text_len = 5;
+
+        string command_plain_text;
+        while(getline(cin, command_plain_text)){
+            if(user_input == "exit"){
+                break;
+            }
+
+            int command_plain_text_len = command_plain_text.size();
+
+            char* iv;
+            int iv_len = 16;
+            
+            char* command_cipher_text;
+
+            char* tag;
+
+            int command_cipher_text_len = gcm_encrypt(command_plain_text,
+                                                      command_plain_text_len,
+                                                      additional_text,
+                                                      additional_text_len,
+                                                      symmetric_key,
+                                                      iv,
+                                                      iv_len,
+                                                      command_cipher_text,
+                                                      tag);
+
+
+        }
 
         mp_clear(&private_key);
         mp_clear(&public_key);
