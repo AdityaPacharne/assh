@@ -58,8 +58,8 @@ int main(){
             break;
         }
 
-        uint8_t client_public_key_buffer[256];
-        int recv_status = recv(accept_sockfd, client_public_key_buffer, 256, MSG_WAITALL); 
+        uint8_t peer_public_key_buffer[256];
+        int recv_status = recv(accept_sockfd, peer_public_key_buffer, 256, MSG_WAITALL); 
         if(recv_status == 0){
             fprintf(stderr, "Client has closed the connection...\n");
             exit(1);
@@ -84,23 +84,15 @@ int main(){
             exit(1);
         }
 
-        mp_int client_public_key = buffer_to_mp(client_public_key_buffer, recv_status);
+        mp_int peer_public_key = buffer_to_mp(peer_public_key_buffer, recv_status);
 
-        mp_int shared_key = calculate_shared_key(client_public_key, private_key);
+        std::string symmetric_key = calculate_symmetric_key(peer_public_key, private_key);
 
-        uint8_t shared_key_buffer[256];
-        size_t shared_key_written = mp_to_buffer(shared_key, shared_key_buffer);
-        const char* shared_key_char = reinterpret_cast<const char*>(shared_key_buffer);
-        std::string hashed = sha256(std::string(shared_key_char, shared_key_written));
-        std::cout << "Shared Key Char: " << hashed << '\n';
-
-
-        view_mp(shared_key);
+        std::cout << "Symmetric Key: " << symmetric_key << '\n';
 
         mp_clear(&private_key);
         mp_clear(&public_key);
-        mp_clear(&client_public_key);
-        mp_clear(&shared_key);
+        mp_clear(&peer_public_key);
 
         close(accept_sockfd);
         close(sockfd);

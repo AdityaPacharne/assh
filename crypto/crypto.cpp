@@ -1,5 +1,7 @@
 #include<tommath.h>
+#include<iostream>
 #include<cstdlib>
+#include "hashing/sha256.h"
 
 void fetch_value_of_generator(mp_int& generator){
     /*
@@ -108,7 +110,7 @@ mp_int buffer_to_mp(uint8_t* peer_public_key_buffer, int recv_size){
     return peer_public_key;
 }
 
-mp_int calculate_shared_key(mp_int& peer_public_key, mp_int& private_key){
+std::string calculate_symmetric_key(mp_int& peer_public_key, mp_int& private_key){
     /*
      * Creates and initializes shared_key
      * Calculated shared key by expt y^b where
@@ -130,9 +132,15 @@ mp_int calculate_shared_key(mp_int& peer_public_key, mp_int& private_key){
         exit(1);
     }
 
-    mp_clear(&big_prime);
+    uint8_t shared_key_buffer[256];
+    size_t shared_key_written = mp_to_buffer(shared_key, shared_key_buffer);
+    const char* shared_key_char = reinterpret_cast<const char*>(shared_key_buffer);
+    std::string symmetric_key = sha256(std::string(shared_key_char, shared_key_written));
 
-    return shared_key;
+    mp_clear(&big_prime);
+    mp_clear(&shared_key);
+
+    return symmetric_key;
 }
 
 void view_mp(mp_int& mp_tobe_viewed){

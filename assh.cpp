@@ -6,8 +6,7 @@
 #include<unistd.h>
 #include "crypto/crypto.h"
 #include "crypto/hashing/sha256.h"
-
-using namespace std;
+#include "crypto/aes/aes.h"
 
 #define PORT "14641"
 
@@ -27,17 +26,14 @@ int main() {
     }
 
     for(auto addrinfo_node = results; addrinfo_node != NULL; addrinfo_node = addrinfo_node->ai_next){
-        int sockfd = socket(addrinfo_node->ai_family,
-                            addrinfo_node->ai_socktype,
-                            addrinfo_node->ai_protocol);
+
+        int sockfd = socket(addrinfo_node->ai_family, addrinfo_node->ai_socktype, addrinfo_node->ai_protocol);
         if(sockfd == -1){
             fprintf(stderr, "Error while creating a socket\n");
             continue;
         }
 
-        int socket_connect = connect(sockfd,
-                                    addrinfo_node->ai_addr,
-                                    addrinfo_node->ai_addrlen);
+        int socket_connect = connect(sockfd, addrinfo_node->ai_addr, addrinfo_node->ai_addrlen);
         if(socket_connect == -1){
             fprintf(stderr, "Error while connecting to a socket\n");
             exit(1);
@@ -69,55 +65,30 @@ int main() {
             exit(1);
         }
 
-        mp_int server_public_key = buffer_to_mp(server_public_key_buffer, recv_status);
+        mp_int peer_public_key = buffer_to_mp(server_public_key_buffer, recv_status);
 
-        mp_int shared_key = calculate_shared_key(server_public_key, private_key);
+        std::string symmetric_key = calculate_symmetric_key(peer_public_key, private_key);
 
-        uint8_t shared_key_buffer[256];
-        size_t shared_key_written = mp_to_buffer(shared_key, shared_key_buffer);
-        const char* shared_key_char = reinterpret_cast<const char*>(shared_key_buffer);
-        std::string symmetric_key = sha256(std::string(shared_key_char, shared_key_written));
-        /*std::cout << "Shared Key Char: " << symmetric_key << '\n';*/
-
-        /*view_mp(shared_key);*/
-
-        char* additional_text = "YOOOO";
-        int additional_text_len = 5;
-
-        string command_plain_text;
-        while(getline(cin, command_plain_text)){
-            if(user_input == "exit"){
-                break;
-            }
-
-            int command_plain_text_len = command_plain_text.size();
-
-            char* iv;
-            int iv_len = 16;
-            
-            char* command_cipher_text;
-
-            char* tag;
-
-            int command_cipher_text_len = gcm_encrypt(command_plain_text,
-                                                      command_plain_text_len,
-                                                      additional_text,
-                                                      additional_text_len,
-                                                      symmetric_key,
-                                                      iv,
-                                                      iv_len,
-                                                      command_cipher_text,
-                                                      tag);
+        std::cout << "Symmetric Key: " << symmetric_key << '\n';
 
 
-        }
+        /*std::string command_input;*/
+        /*for(getline(cin, command_input)){*/
+        /*    if(command_input == "exit"){*/
+        /*        std::cout << "Byeeee\n";*/
+        /*        break;*/
+        /*    }*/
+        /*    const char* char_symmetric_key = symmetric_key.c_str();*/
+        /*    AES_RETURN aes_encrypt_key256(const unsigned char *key, aes_encrypt_ctx cx[1]);*/
+        /*}*/
 
         mp_clear(&private_key);
         mp_clear(&public_key);
-        mp_clear(&server_public_key);
-        mp_clear(&shared_key);
+        mp_clear(&peer_public_key);
         close(sockfd);
     }
 
     freeaddrinfo(results);
+
+    return 0;
 }
