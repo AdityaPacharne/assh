@@ -68,19 +68,26 @@ int main() {
         mp_int peer_public_key = buffer_to_mp(server_public_key_buffer, recv_status);
 
         std::string symmetric_key = calculate_symmetric_key(peer_public_key, private_key);
+        std::cout << "Symmetric Key: " << symmetric_key << std::endl;
 
-        std::cout << "Symmetric Key: " << symmetric_key << '\n';
+        std::string command_input;
+        while(true){
 
+            std::cin >> command_input;
+            if(command_input == "exit"){
+                std::cout << "Byeeee\n";
+                break;
+            }
 
-        /*std::string command_input;*/
-        /*for(getline(cin, command_input)){*/
-        /*    if(command_input == "exit"){*/
-        /*        std::cout << "Byeeee\n";*/
-        /*        break;*/
-        /*    }*/
-        /*    const char* char_symmetric_key = symmetric_key.c_str();*/
-        /*    AES_RETURN aes_encrypt_key256(const unsigned char *key, aes_encrypt_ctx cx[1]);*/
-        /*}*/
+            int padding;
+            unsigned char* command_cipher = command_encrypt(command_input, symmetric_key, padding);
+            std::cout << "Encrypted command: " << command_cipher << std::endl;
+
+            int original_length = sizeof(command_cipher);
+
+            std::string decrypted_command_cipher = command_decrypt(command_cipher, symmetric_key, original_length, padding);
+            std::cout << "Decrypted command: " << decrypted_command_cipher << std::endl;
+        }
 
         mp_clear(&private_key);
         mp_clear(&public_key);

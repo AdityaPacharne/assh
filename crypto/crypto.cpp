@@ -2,6 +2,9 @@
 #include<iostream>
 #include<cstdlib>
 #include "hashing/sha256.h"
+#include "aes/aes.h"
+
+#define BLOCK_SIZE 16
 
 void fetch_value_of_generator(mp_int& generator){
     /*
@@ -154,4 +157,69 @@ void view_mp(mp_int& mp_tobe_viewed){
         fprintf(stderr, "Error while converting to radix: %s\n", mp_error_to_string(view_radix));
     }
     printf("Radix: \n%s\n", buffer);
+}
+
+unsigned char* command_encrypt(std::string input, std::string symmetric_key, int& padding){
+    /*
+     * Create a block of padded length size by calculating the mulitples of BLOCK_SIZE required
+     * Initialize aes encrypt key
+     * Return ciphered input
+     */
+    const unsigned char* char_symmetric_key = (unsigned char*)symmetric_key.c_str();
+
+    int padded_len = ((input.size() + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
+    padding = padded_len;
+
+    unsigned char* padded_input = new unsigned char[padded_len]();
+    memcpy(padded_input, input.data(), input.size());
+
+    unsigned char* input_cipher = new unsigned char[padded_len]();
+
+    aes_encrypt_ctx ecx = {};
+    AES_RETURN aes_encrypt_initialize = aes_encrypt_key256(char_symmetric_key, &ecx);
+    if(aes_encrypt_initialize != 0){
+        fprintf(stderr, "Error while initializing aes encrypt context\n");
+    }
+
+    AES_RETURN input_cipher_status = aes_encrypt(padded_input, input_cipher, &ecx);
+    if(input_cipher_status != 0){
+        fprintf(stderr, "Error while encrypting command\n");
+    }
+
+    delete[] padded_input;
+
+    return input_cipher;
+}
+
+std::string command_decrypt(unsigned char* command_cipher, std::string symmetric_key, int original_length, int padded_len){
+    /*
+     * Creates a unsigned char* version of symmetric key
+     * Creates and initializes a context for aes_decrypt
+     * Decrypts command_cipher
+     */
+    const unsigned char* char_symmetric_key = (unsigned char*)symmetric_key.c_str();
+
+    unsigned char* output_cipher = new unsigned char[padded_len](); // or padded_len
+
+    aes_decrypt_ctx dcx = {};
+    AES_RETURN aes_decrypt_initialize = aes_decrypt_key256(char_symmetric_key, &dcx);
+    if(aes_decrypt_initialize != 0){
+        fprintf(stderr, "Error while initializing aes decrypt context\n");
+    }
+
+    AES_RETURN output_cipher_status = aes_decrypt(command_cipher, output_cipher, &dcx);
+    if(output_cipher_status != 0){
+        fprintf(stderr, "Error while decrypting command\n");
+    }
+
+    /*
+     * This conversion from unsigned char* to string can be a problem when there are
+     * multiple nulls inside the cipher
+     * Hence gave an argument of length that will be present in the received packet
+     */
+    std::string output_cipher_string(reinterpret_cast<const char*>(output_cipher), original_length);
+
+    delete[] output_cipher;
+
+    return output_cipher_string;
 }
