@@ -181,9 +181,11 @@ unsigned char* command_encrypt(std::string input, std::string symmetric_key, int
         fprintf(stderr, "Error while initializing aes encrypt context\n");
     }
 
-    AES_RETURN input_cipher_status = aes_encrypt(padded_input, input_cipher, &ecx);
-    if(input_cipher_status != 0){
-        fprintf(stderr, "Error while encrypting command\n");
+    for(int i = 0; i < padded_len; i += 16){
+        AES_RETURN input_cipher_status = aes_encrypt(padded_input + i, input_cipher + i, &ecx);
+        if(input_cipher_status != 0){
+            fprintf(stderr, "Error while encrypting command\n");
+        }
     }
 
     delete[] padded_input;
@@ -207,9 +209,11 @@ std::string command_decrypt(unsigned char* command_cipher, std::string symmetric
         fprintf(stderr, "Error while initializing aes decrypt context\n");
     }
 
-    AES_RETURN output_cipher_status = aes_decrypt(command_cipher, output_cipher, &dcx);
-    if(output_cipher_status != 0){
-        fprintf(stderr, "Error while decrypting command\n");
+    for (int i = 0; i < padded_len; i += 16) {
+        AES_RETURN output_cipher_status = aes_decrypt(command_cipher + i, output_cipher + i, &dcx);
+        if (output_cipher_status != 0) {
+            fprintf(stderr, "Error while decrypting block at offset %d\n", i);
+        }
     }
 
     /*

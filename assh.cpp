@@ -80,13 +80,12 @@ int main() {
             }
 
             int padding;
+            int original_length = command_input.size();
+
             unsigned char* command_cipher = command_encrypt(command_input, symmetric_key, padding);
             std::cout << "Encrypted command: " << command_cipher << std::endl;
 
-            int original_length = sizeof(command_cipher);
-
             std::string decrypted_command_cipher = command_decrypt(command_cipher, symmetric_key, original_length, padding);
-            std::cout << "Decrypted command: " << decrypted_command_cipher << std::endl;
         }
 
         mp_clear(&private_key);
