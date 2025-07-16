@@ -7,99 +7,112 @@
 #include "crypto/crypto.h"
 #include "crypto/hashing/sha256.h"
 
-#define PORT "14641"
-#define BACKLOG 5
+constexpr auto PORT = "14641";
+constexpr auto BACKLOG = 5;
 
-int main(){
-
-    struct addrinfo hints;
-    struct addrinfo *results;
+int create_and_bind_socket(const std::string& port){
+    /*
+     * Fetch network info of our own port 14641
+     * Bind a socket to this port
+     * Return the socket file descriptor
+     */
+    addrinfo hints;
     hints.ai_flags = AI_PASSIVE;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    int fetch_address_info = getaddrinfo(NULL, PORT, &hints, &results);
-    if(fetch_address_info != 0){
-        fprintf(stderr, "Error while fetching address info: %s\n", gai_strerror(fetch_address_info));
+    addrinfo *results;
+
+    int status = getaddrinfo(NULL, port.c_str(), &hints, &results);
+    if(status != 0){
+        std::cerr << "Error while fetching address info: " << gai_strerror(status) << '\n';
         exit(1);
     }
 
-    for(auto addrinfo_node = results; addrinfo_node != NULL; addrinfo_node = addrinfo_node->ai_next){
-        
-        int sockfd = socket(addrinfo_node->ai_family, addrinfo_node->ai_socktype, addrinfo_node->ai_protocol);
+    int sockfd = -1;
+    for(auto node = results; node != NULL; node = node->ai_next){
+        sockfd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
+        if(sockfd == -1) continue;
+
         int yes = 1;
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
-            perror("setsockopt");
-            exit(1);
-        }
-        if(sockfd == -1){
-            fprintf(stderr, "Error while creating socket\n");
+        if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0){
+            std::cerr << "setsockopt(SO_REUSEADDR) failed\n";
+            close(sockfd);
             continue;
         }
 
-        int bind_status = bind(sockfd, addrinfo_node->ai_addr, addrinfo_node->ai_addrlen);
-        if(bind_status == -1){
-            fprintf(stderr, "Error while binding socket to a port\n");
-            continue;
-        }
-
-        int listen_status = listen(sockfd, BACKLOG);
-        if(listen_status == -1){
-            fprintf(stderr, "Error while listening on a port\n");
-            exit(1);
-        }
-
-        struct sockaddr_storage client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        int accept_sockfd = accept(sockfd, (struct sockaddr*)&client_addr, &client_addr_len);
-        if(accept_sockfd == -1){
-            fprintf(stderr, "Error whle accepting a connection\n");
-            break;
-        }
-
-        uint8_t peer_public_key_buffer[256];
-        int recv_status = recv(accept_sockfd, peer_public_key_buffer, 256, MSG_WAITALL); 
-        if(recv_status == 0){
-            fprintf(stderr, "Client has closed the connection...\n");
-            exit(1);
-        }
-        if(recv_status == -1){
-            fprintf(stderr, "Error while receiving client's public key\n");
-            exit(1);
-        }
-
-        mp_int private_key;
-        generate_private_key(private_key);
-
-        mp_int public_key;
-        generate_public_key(private_key, public_key);
-
-        uint8_t public_key_buffer[256];
-        size_t public_key_written = mp_to_buffer(public_key, public_key_buffer);
-
-        int send_status = send(accept_sockfd, public_key_buffer, public_key_written, 0);
-        if(send_status == -1){
-            fprintf(stderr, "Error while sending data through socket\n");
-            exit(1);
-        }
-
-        mp_int peer_public_key = buffer_to_mp(peer_public_key_buffer, recv_status);
-
-        std::string symmetric_key = calculate_symmetric_key(peer_public_key, private_key);
-
-        std::cout << "Symmetric Key: " << symmetric_key << '\n';
-
-        mp_clear(&private_key);
-        mp_clear(&public_key);
-        mp_clear(&peer_public_key);
-
-        close(accept_sockfd);
+        if(bind(sockfd, node->ai_addr, node->ai_addrlen) != -1) break;
         close(sockfd);
-        break;
+        sockfd = -1;
     }
 
     freeaddrinfo(results);
 
+    if(sockfd == -1){
+        std::cerr << "Error while binding to a socket\n";
+        exit(1);
+    }
+
+    return sockfd;
+}
+
+std::string perform_key_exchange(int sockfd){
+    /*
+     * Listen on the port
+     * New sockfd is created after accpeting the connection
+     * Generate private and public key
+     * Return symmetric_key
+     */
+    if(listen(sockfd, BACKLOG) == -1){
+        std::cerr << "Error while listening on a port\n";
+        exit(1);
+    }
+
+    sockaddr_storage peer_addr;
+    socklen_t peer_addr_length = sizeof(peer_addr);
+    int accept_sockfd = accept(sockfd, (struct sockaddr*)&peer_addr, &peer_addr_length);
+    if(accept_sockfd == -1){
+        std::cerr << "Error while accepting a connection\n";
+        exit(1);
+    }
+
+    uint8_t peer_key_buffer[256];
+    int recv_status = recv(accept_sockfd, peer_key_buffer, 256, MSG_WAITALL);
+    if(recv_status <= 0){
+        std::cerr << "Error while receiving peer's public_key or Connection closed...\n";
+        exit(1);
+    }
+
+    mp_int private_key, public_key;
+    generate_private_key(private_key);
+    generate_public_key(private_key, public_key);
+
+    uint8_t public_key_buffer[256];
+    size_t public_key_written = mp_to_buffer(public_key, public_key_buffer);
+
+    if(send(accept_sockfd, public_key_buffer, public_key_written, 0) == -1){
+        std::cerr << "Error while sending public_key\n";
+        exit(1);
+    }
+
+    mp_int peer_public_key = buffer_to_mp(peer_key_buffer, recv_status);
+
+    std::string symmetric_key = calculate_symmetric_key(peer_public_key, private_key);
+    std::cout << "Symmetric Key: " << symmetric_key << '\n';
+
+    mp_clear(&private_key);
+    mp_clear(&public_key);
+    mp_clear(&peer_public_key);
+
+    close(accept_sockfd);
+    close(sockfd);
+
+    return symmetric_key;
+}
+
+int main(){
+    int sockfd = create_and_bind_socket(PORT);
+    std::string symmetric_key = perform_key_exchange(sockfd);
     return 0;
 }

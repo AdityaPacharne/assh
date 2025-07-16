@@ -12,6 +12,11 @@ constexpr auto PEER_IP = "127.0.0.1";
 constexpr auto PORT = "14641";
 
 int connect_to_peer(const std::string& ip, const std::string& port){
+    /*
+     * Fetching network info of ip and port taken as parameters
+     * Create and connect to a socket
+     * Return socket file descriptor
+     */
     addrinfo hints;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -22,11 +27,11 @@ int connect_to_peer(const std::string& ip, const std::string& port){
 
     int status = getaddrinfo(ip.c_str(), port.c_str(), &hints, &results);
     if(status != 0){
-        fprintf(stderr, "Error while fetching address info: %s\n", gai_strerror(status));
+        std::cerr << "Error while fetching address info: " << gai_strerror(status) << '\n';
         exit(1);
     }
 
-    int sockfd = 1;
+    int sockfd = -1;
     for(auto node = results; node != NULL; node = node->ai_next){
         sockfd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
         if(sockfd == -1) continue;
@@ -45,6 +50,11 @@ int connect_to_peer(const std::string& ip, const std::string& port){
 }
 
 std::string perform_key_exchange(int sockfd){
+    /*
+     * Generate public and private key
+     * Send our public key over to the peer and wait for their public_key to arrive
+     * Generate a symmetric using that
+     */
     mp_int private_key, public_key;
     generate_private_key(private_key);
     generate_public_key(private_key, public_key);
@@ -53,13 +63,17 @@ std::string perform_key_exchange(int sockfd){
     size_t public_key_written = mp_to_buffer(public_key, public_key_buffer);
 
     int send_status = send(sockfd, public_key_buffer, public_key_written, 0);
-    if(send_status == -1) std::cerr << "Error while public_key exchange\n";
+    if(send_status == -1){
+        std::cerr << "Error while public_key exchange\n";
+        exit(1);
+    }
 
     uint8_t peer_key_buffer[256];
 
     int recv_status = recv(sockfd, peer_key_buffer, 256, MSG_WAITALL);
     if(recv_status <= 0){
         std::cerr << "Error while receiving peer's public_key or Connection closed...\n";
+        exit(1);
     }
 
     mp_int peer_public_key = buffer_to_mp(peer_key_buffer, recv_status);
@@ -75,12 +89,13 @@ std::string perform_key_exchange(int sockfd){
 }
 
 void command_loop(int sockfd, const std::string& symmetric_key){
+    /*
+     * Command loop takes input from user
+     * Encrypts the command and sends it over
+     */
     std::string command;
 
-    while(true){
-        std::cout << '>';
-        std::cin >> command;
-
+    while(getline(std::cin >> std::ws, command)){
         if(command == "exit") break;
 
         int padding = 0;
