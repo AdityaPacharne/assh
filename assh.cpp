@@ -98,15 +98,17 @@ void command_loop(int sockfd, const std::string& symmetric_key){
     while(getline(std::cin >> std::ws, command)){
         if(command == "exit") break;
 
-        int padding = 0;
-        int command_length = command.size();
-        unsigned char* command_cipher = command_encrypt(command, symmetric_key, padding);
+        unsigned char iv[16];
+        for(int i = 0; i < 16; i++) iv[i] = rand() % 256;
 
-        std::cout << "Encrypted command: " << command_cipher << '\n';
+        unsigned char iv_copy[16];
+        memcpy(iv_copy, iv, 16);
 
-        std::string decrypted_command = command_decrypt(command_cipher, symmetric_key, command_length, padding);
+        std::string ctr_enc = aes_ctr(command, symmetric_key, iv);
+        std::cout << "CTR enc: " << ctr_enc << '\n';
 
-        delete[] command_cipher;
+        std::string ctr_dec = aes_ctr(ctr_enc, symmetric_key, iv_copy);
+        std::cout << "CTR dec: " << ctr_dec << '\n';
     }
 }
 

@@ -17,7 +17,6 @@ size_t mp_to_buffer(mp_int& public_key, uint8_t* public_key_buffer);
 mp_int buffer_to_mp(uint8_t* peer_public_key_buffer, int recv_size);
 std::string calculate_symmetric_key(mp_int& peer_public_key, mp_int& private_key);
 void view_mp(mp_int& mp_tobe_viewed);
-unsigned char* command_encrypt(std::string input, std::string symmetric_key, int& padding);
-std::string command_decrypt(unsigned char* command_cipher, std::string symmetric_key, int original_length, int padded_len);
+std::string aes_ctr(std::string input, const std::string symmetric_key, const unsigned char* iv);
 
 #endif

@@ -159,71 +159,40 @@ void view_mp(mp_int& mp_tobe_viewed){
     printf("Radix: \n%s\n", buffer);
 }
 
-unsigned char* command_encrypt(std::string input, std::string symmetric_key, int& padding){
+void counter_increment(unsigned char* cbuf) {
+    for(int i = 16; i > 0; i--){
+        if(++cbuf[i] != 0) break;
+    }
+}
+
+std::string aes_ctr(std::string input, const std::string symmetric_key, const unsigned char* iv){
     /*
-     * Create a block of padded length size by calculating the mulitples of BLOCK_SIZE required
-     * Initialize aes encrypt key
-     * Return ciphered input
+     * Uses aes ctr for encryption and decryption
+     * It doesnt need 2 different functions
+     * It takes input and symmetric_key as input
+     * and 16 byte random number iv
      */
-    const unsigned char* char_symmetric_key = (unsigned char*)symmetric_key.c_str();
+    int size = input.size();
 
-    int padded_len = ((input.size() + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
-    padding = padded_len;
+    unsigned char* output_buffer = new unsigned char[size];
 
-    unsigned char* padded_input = new unsigned char[padded_len]();
-    memcpy(padded_input, input.data(), input.size());
-
-    unsigned char* input_cipher = new unsigned char[padded_len]();
-
-    aes_encrypt_ctx ecx = {};
-    AES_RETURN aes_encrypt_initialize = aes_encrypt_key256(char_symmetric_key, &ecx);
+    aes_encrypt_ctx ctx = {};
+    AES_RETURN aes_encrypt_initialize = aes_encrypt_key256(reinterpret_cast<const unsigned char*>(symmetric_key.c_str()), &ctx);
     if(aes_encrypt_initialize != 0){
         fprintf(stderr, "Error while initializing aes encrypt context\n");
     }
 
-    for(int i = 0; i < padded_len; i += 16){
-        AES_RETURN input_cipher_status = aes_encrypt(padded_input + i, input_cipher + i, &ecx);
-        if(input_cipher_status != 0){
-            fprintf(stderr, "Error while encrypting command\n");
-        }
-    }
+    /*AES_RETURN ctr_status = aes_ctr_crypt(const unsigned char *ibuf, unsigned char *obuf,*/
+    /*        int len, unsigned char *cbuf, cbuf_inc ctr_inc, aes_encrypt_ctx ctx[1])*/
 
-    delete[] padded_input;
+    unsigned char counter_buffer[16];
+    memcpy(counter_buffer, iv, 16);
 
-    return input_cipher;
-}
+    AES_RETURN ctr_status = aes_ctr_crypt(reinterpret_cast<const unsigned char*>(input.c_str()), output_buffer, size, counter_buffer, counter_increment, &ctx);
+    if(ctr_status != 0) std::cerr << "Error in ctr crypt\n";
 
-std::string command_decrypt(unsigned char* command_cipher, std::string symmetric_key, int original_length, int padded_len){
-    /*
-     * Creates a unsigned char* version of symmetric key
-     * Creates and initializes a context for aes_decrypt
-     * Decrypts command_cipher
-     */
-    const unsigned char* char_symmetric_key = (unsigned char*)symmetric_key.c_str();
+    std::string output(reinterpret_cast<const char*>(output_buffer), size);
+    delete[] output_buffer;
 
-    unsigned char* output_cipher = new unsigned char[padded_len](); // or padded_len
-
-    aes_decrypt_ctx dcx = {};
-    AES_RETURN aes_decrypt_initialize = aes_decrypt_key256(char_symmetric_key, &dcx);
-    if(aes_decrypt_initialize != 0){
-        fprintf(stderr, "Error while initializing aes decrypt context\n");
-    }
-
-    for (int i = 0; i < padded_len; i += 16) {
-        AES_RETURN output_cipher_status = aes_decrypt(command_cipher + i, output_cipher + i, &dcx);
-        if (output_cipher_status != 0) {
-            fprintf(stderr, "Error while decrypting block at offset %d\n", i);
-        }
-    }
-
-    /*
-     * This conversion from unsigned char* to string can be a problem when there are
-     * multiple nulls inside the cipher
-     * Hence gave an argument of length that will be present in the received packet
-     */
-    std::string output_cipher_string(reinterpret_cast<const char*>(output_cipher), original_length);
-
-    delete[] output_cipher;
-
-    return output_cipher_string;
+    return output;
 }
