@@ -137,8 +137,8 @@ std::string calculate_symmetric_key(mp_int& peer_public_key, mp_int& private_key
 
     uint8_t shared_key_buffer[256];
     size_t shared_key_written = mp_to_buffer(shared_key, shared_key_buffer);
-    const char* shared_key_char = reinterpret_cast<const char*>(shared_key_buffer);
-    std::string symmetric_key = sha256(std::string(shared_key_char, shared_key_written));
+    const unsigned char* shared_key_char = reinterpret_cast<const unsigned char*>(shared_key_buffer);
+    std::string symmetric_key = sha256(shared_key_char, shared_key_written);
 
     mp_clear(&big_prime);
     mp_clear(&shared_key);
