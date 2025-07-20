@@ -6,9 +6,10 @@
 #include<unistd.h>
 #include "crypto/crypto.h"
 #include "crypto/hashing/sha256.h"
+#include "crypto/aes/aes.h"
 
 constexpr auto PORT = "14641";
-constexpr auto BACKLOG = 5;
+constexpr auto BACKLOG = 10;
 
 int create_and_bind_socket(const std::string& port){
     /*
@@ -16,7 +17,7 @@ int create_and_bind_socket(const std::string& port){
      * Bind a socket to this port
      * Return the socket file descriptor
      */
-    addrinfo hints;
+    addrinfo hints{};
     hints.ai_flags = AI_PASSIVE;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -57,7 +58,7 @@ int create_and_bind_socket(const std::string& port){
     return sockfd;
 }
 
-std::string perform_key_exchange(int sockfd){
+std::string perform_key_exchange(int sockfd, int& new_sockfd){
     /*
      * Listen on the port
      * New sockfd is created after accpeting the connection
@@ -72,6 +73,7 @@ std::string perform_key_exchange(int sockfd){
     sockaddr_storage peer_addr;
     socklen_t peer_addr_length = sizeof(peer_addr);
     int accept_sockfd = accept(sockfd, (struct sockaddr*)&peer_addr, &peer_addr_length);
+    new_sockfd = accept_sockfd;
     if(accept_sockfd == -1){
         std::cerr << "Error while accepting a connection\n";
         exit(1);
@@ -105,14 +107,51 @@ std::string perform_key_exchange(int sockfd){
     mp_clear(&public_key);
     mp_clear(&peer_public_key);
 
-    close(accept_sockfd);
     close(sockfd);
 
     return symmetric_key;
 }
 
+void command_loop(int new_sockfd, std::string symmetric_key){
+    while(true){
+        uint32_t ctr_enc_size{};
+        int length_status = recv(new_sockfd, &ctr_enc_size, 4, MSG_WAITALL);
+        if(length_status <= 0){
+            std::cerr << "Connection closed or error receiving length\n";
+            break;
+        }
+        ctr_enc_size = ntohl(ctr_enc_size);
+
+        if(ctr_enc_size > 10000){  // Reasonable limit
+            std::cerr << "Received unreasonable command size: " << ctr_enc_size << std::endl;
+            break;
+        }
+
+        std::vector<char> enc_command(ctr_enc_size);
+        int command_status = recv(new_sockfd, enc_command.data(), ctr_enc_size, MSG_WAITALL);
+        if(command_status <= 0){
+            std::cerr << "Connection closed or error receiving command\n";
+            break;
+        }
+
+        unsigned char iv[16];
+        int iv_status = recv(new_sockfd, &iv, 16, MSG_WAITALL);
+        if(iv_status <= 0){
+            std::cerr << "Connection closed or error receiving IV\n";
+            break;
+        }
+
+        std::string dec_command = aes_ctr(std::string(enc_command.begin(), enc_command.end()), symmetric_key, iv);
+        std::cout << dec_command << std::endl;
+
+    }
+    close(new_sockfd);
+}
+
 int main(){
     int sockfd = create_and_bind_socket(PORT);
-    std::string symmetric_key = perform_key_exchange(sockfd);
+    int new_sockfd{};
+    std::string symmetric_key = perform_key_exchange(sockfd, new_sockfd);
+    command_loop(new_sockfd, symmetric_key);
     return 0;
 }

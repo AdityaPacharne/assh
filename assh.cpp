@@ -105,10 +105,14 @@ void command_loop(int sockfd, const std::string& symmetric_key){
         memcpy(iv_copy, iv, 16);
 
         std::string ctr_enc = aes_ctr(command, symmetric_key, iv);
-        std::cout << "CTR enc: " << ctr_enc << '\n';
+
+        uint32_t ctr_enc_size = htonl(ctr_enc.size());
+
+        send(sockfd, &ctr_enc_size, 4, 0);
+        send(sockfd, ctr_enc.data(), ctr_enc.size(), 0);
+        send(sockfd, iv, 16, 0);
 
         std::string ctr_dec = aes_ctr(ctr_enc, symmetric_key, iv_copy);
-        std::cout << "CTR dec: " << ctr_dec << '\n';
     }
 }
 
