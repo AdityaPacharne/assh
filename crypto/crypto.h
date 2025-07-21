@@ -3,7 +3,9 @@
 
 #define BLOCK_SIZE 16
 
-#include<tommath.h>
+extern "C" {
+    #include <tommath.h>
+}
 #include<cstdlib>
 #include<iostream>
 #include<cstring>
