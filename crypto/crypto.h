@@ -6,6 +6,7 @@
 #include<tommath.h>
 #include<cstdlib>
 #include<iostream>
+#include<cstring>
 #include "hashing/sha256.h"
 #include "aes/aes.h"
 
