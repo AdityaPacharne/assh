@@ -28,17 +28,14 @@ int connect_to_peer(const std::string& ip, const std::string& port){
     addrinfo* results;
 
     int status = getaddrinfo(ip.c_str(), port.c_str(), &hints, &results);
-    std::cout << "Connecting to IP: " << ip << std::endl;
     if(status != 0){
         std::cerr << "Error while fetching address info: " << gai_strerror(status) << '\n';
         exit(1);
     }
-    std::cout << "I guess no erro while connecting to IP\n";
 
     int sockfd = -1;
     for(auto node = results; node != NULL; node = node->ai_next){
         sockfd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
-        std::cout << "sockfd: " << sockfd << std::endl;
         if(sockfd == -1) continue;
         if(connect(sockfd, node->ai_addr, node->ai_addrlen) == 0) break;
         close(sockfd);
@@ -122,7 +119,6 @@ void command_loop(int sockfd, const std::string& symmetric_key){
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << argv[1] << std::endl;
     int sockfd = connect_to_peer(argv[1], PORT);
     std::string symmetric_key = perform_key_exchange(sockfd);
     command_loop(sockfd, symmetric_key);
