@@ -6,6 +6,7 @@ extern "C" {
 #include<sys/types.h>
 #include<netdb.h>
 #include<unistd.h>
+#include<vector>
 #include "crypto/crypto.h"
 #include "crypto/hashing/sha256.h"
 #include "crypto/aes/aes.h"
