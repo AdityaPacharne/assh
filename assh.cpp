@@ -110,11 +110,31 @@ void command_loop(int sockfd, const std::string& symmetric_key){
 
         uint32_t ctr_enc_size = htonl(ctr_enc.size());
 
-        send(sockfd, &ctr_enc_size, 4, 0);
+        send(sockfd, &ctr_enc_size, sizeof(ctr_enc_size), 0);
         send(sockfd, ctr_enc.data(), ctr_enc.size(), 0);
         send(sockfd, iv, 16, 0);
 
-        std::string ctr_dec = aes_ctr(ctr_enc, symmetric_key, iv_copy);
+        uint32_t net_size;
+        int result_size_status = recv(sockfd, &net_size, sizeof(net_size), MSG_WAITALL);
+        if(result_size_status == -1){
+            std::cerr << "Error while receiving result size\n";
+        }
+        net_size = ntohl(net_size);
+        
+        std::string result(net_size, '\0');
+        int received_size{0};
+
+        while(received_size < net_size){
+            int status = recv(sockfd, &result[received_size], net_size - received_size, 0);
+            if(status <= 0){
+                std::cerr << "Error while receiving result\n";
+                break;
+            }
+            received_size += status;
+        }
+
+        std::string decrypted_result = aes_ctr(result, symmetric_key, iv_copy);
+        std::cout << decrypted_result << std::endl;
     }
 }
 

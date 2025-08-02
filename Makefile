@@ -1,5 +1,5 @@
 CXX := clang++
-CXXFLAGS := -std=c++11 -Wall -Ilibtommath -Icrypto/hashing -Icrypto/aes
+CXXFLAGS := -std=c++17 -Wall -Ilibtommath -Icrypto/hashing -Icrypto/aes
 LDFLAGS := -Llibtommath -ltommath -Lcrypto/aes
 
 CRYPTO_SRCS := crypto/crypto.cpp crypto/hashing/sha256.cpp crypto/aes/aescrypt.c crypto/aes/aeskey.c crypto/aes/aestab.c crypto/aes/aes_modes.c
