@@ -19,7 +19,7 @@ int connect_to_peer(const std::string& ip, const std::string& port){
      * Create and connect to a socket
      * Return socket file descriptor
      */
-    addrinfo hints;
+    addrinfo hints{};
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;

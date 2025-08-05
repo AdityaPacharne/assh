@@ -168,9 +168,13 @@ void command_loop(int new_sockfd, std::string symmetric_key){
     while(true){
         uint32_t ctr_enc_size{};
         int length_status = recv(new_sockfd, &ctr_enc_size, 4, MSG_WAITALL);
-        if(length_status <= 0){
-            std::cerr << "Connection closed or error receiving length\n";
+        if(length_status == 0){
+            std::cerr << "Connection closed\n";
             break;
+        }
+        else if(length_status == -1){
+            std::cerr << "Error while receiving length\n";
+            exit(1);
         }
         ctr_enc_size = ntohl(ctr_enc_size);
 
