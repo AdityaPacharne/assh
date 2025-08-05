@@ -1,4 +1,3 @@
-CXX := clang++
 CXXFLAGS := -std=c++17 -Wall -Ilibtommath -Icrypto/hashing -Icrypto/aes
 LDFLAGS := -Llibtommath -ltommath -Lcrypto/aes
 
@@ -6,7 +5,15 @@ CRYPTO_SRCS := crypto/crypto.cpp crypto/hashing/sha256.cpp crypto/aes/aescrypt.c
 CRYPTO_OBJS := $(CRYPTO_SRCS:.cpp=.o)
 CRYPTO_OBJS := $(CRYPTO_OBJS:.c=.o)
 
-all: assh asshd
+all: libtommath/libtommath.a assh asshd
+
+libtommath/libtommath.a:
+	@if [ ! -d "libtommath" ]; then \
+		echo "Cloning libtommath..."; \
+		git clone https://github.com/libtom/libtommath.git libtommath; \
+	fi
+	@echo "Building libtommath..."
+	@cd libtommath && make
 
 assh: assh.o $(CRYPTO_OBJS)
 	$(CXX) $^ $(LDFLAGS) -o $@
@@ -22,3 +29,6 @@ asshd: asshd.o $(CRYPTO_OBJS)
 
 clean:
 	rm assh asshd *.o crypto/*.o crypto/hashing/*.o crypto/aes/*.o
+	@if [ -d "libtommath" ]; then cd libtommath && $(MAKE) clean; fi
+
+.PHONY: all clean
