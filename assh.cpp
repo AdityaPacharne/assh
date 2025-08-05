@@ -94,6 +94,9 @@ void command_loop(int sockfd, const std::string& symmetric_key){
     /*
      * Command loop takes input from user
      * Encrypts the command and sends it over
+     * Receive length of the encrypted result
+     * Receive encrypted result
+     * Decrypt it and ouput to the user
      */
     std::string command;
 

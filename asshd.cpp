@@ -20,6 +20,10 @@ constexpr auto PORT = "14641";
 constexpr auto BACKLOG = 10;
 
 bool send_results(int new_sockfd, const char* result, int total_length){
+    /*
+     * Takes result char* as an input
+     * Sends command output to peer through new_sockfd
+     */
     int total_sent = 0;
     while(total_sent < total_length){
         int bytes_sent = send(new_sockfd, result + total_sent, total_length - total_sent, 0);
@@ -30,6 +34,12 @@ bool send_results(int new_sockfd, const char* result, int total_length){
 }
 
 std::string exec(const char* cmd) {
+    /*
+     * Takes command as input
+     * Opens a pipe to shell in read mode
+     * Reads command output into chunks that get stored in buffer
+     * Appends each chunk to result string
+     */
     std::array<char, 128> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -144,6 +154,17 @@ std::string perform_key_exchange(int sockfd, int& new_sockfd){
 }
 
 void command_loop(int new_sockfd, std::string symmetric_key){
+    /*
+     * Takes new_sockfd and symmetric key as input
+     * Listens on new_sockfd
+     * Receive encrypted command length
+     * Receive encrypted command
+     * Receive IV for decryption
+     * Decrypt the encrypted command
+     * Encrypt the result
+     * Send encrypted result length
+     * Send the encrypted result
+     */
     while(true){
         uint32_t ctr_enc_size{};
         int length_status = recv(new_sockfd, &ctr_enc_size, 4, MSG_WAITALL);
