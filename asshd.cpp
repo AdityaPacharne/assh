@@ -143,7 +143,6 @@ std::string perform_key_exchange(int sockfd, int& new_sockfd){
     mp_int peer_public_key = buffer_to_mp(peer_key_buffer, recv_status);
 
     std::string symmetric_key = calculate_symmetric_key(peer_public_key, private_key);
-    std::cout << "Symmetric Key: " << symmetric_key << '\n';
 
     mp_clear(&private_key);
     mp_clear(&public_key);
@@ -215,7 +214,9 @@ void command_loop(int new_sockfd, std::string symmetric_key){
 int main(){
     int sockfd = create_and_bind_socket(PORT);
     int new_sockfd{};
+    std::cout << "Waiting for connection...\n";
     std::string symmetric_key = perform_key_exchange(sockfd, new_sockfd);
+    std::cout << "Connection Established!\n";
     command_loop(new_sockfd, symmetric_key);
     return 0;
 }

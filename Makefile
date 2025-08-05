@@ -1,3 +1,6 @@
+CC ?= cc
+CXX ?= c++
+CFLAGS := -Wall -Icrypto/aes
 CXXFLAGS := -std=c++17 -Wall -Ilibtommath -Icrypto/hashing -Icrypto/aes
 LDFLAGS := -Llibtommath -ltommath -Lcrypto/aes
 
@@ -24,7 +27,7 @@ asshd: asshd.o $(CRYPTO_OBJS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.o: %.c
-	clang -Wall -Icrypto/aes -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm assh asshd *.o crypto/*.o crypto/hashing/*.o crypto/aes/*.o
