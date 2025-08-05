@@ -12,7 +12,7 @@ libtommath/libtommath.a:
 		git clone https://github.com/libtom/libtommath.git libtommath; \
 	fi
 	@echo "Building libtommath..."
-	@cd libtommath && make
+	@cd libtommath && make -j$(nproc)
 
 assh: assh.o $(CRYPTO_OBJS)
 	$(CXX) $^ $(LDFLAGS) -o $@
