@@ -9,7 +9,6 @@ all: libtommath/libtommath.a assh asshd
 
 libtommath/libtommath.a:
 	@if [ ! -d "libtommath" ]; then \
-		echo "Cloning libtommath..."; \
 		git clone https://github.com/libtom/libtommath.git libtommath; \
 	fi
 	@echo "Building libtommath..."
