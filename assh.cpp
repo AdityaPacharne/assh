@@ -125,7 +125,7 @@ void command_loop(int sockfd, const std::string& symmetric_key){
         net_size = ntohl(net_size);
         
         std::string result(net_size, '\0');
-        int received_size{0};
+        uint32_t received_size{0};
 
         while(received_size < net_size){
             int status = recv(sockfd, &result[received_size], net_size - received_size, 0);
