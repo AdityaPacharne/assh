@@ -1,7 +1,7 @@
 # assh — It's SSH, but ASSh
 
 `assh` is an implementation of SSH...  
-but it's **less secure** and **blazingly slow**.
+but it's **less secure** and **blazingly fast** due to no additional features :)
 
 But hey, I'm proud of it.
 
