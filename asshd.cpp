@@ -1,6 +1,4 @@
-extern "C" {
-    #include <tommath.h>
-}
+#include<tommath.h>
 #include<iostream>
 #include<sys/socket.h>
 #include<sys/types.h>

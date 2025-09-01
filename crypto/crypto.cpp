@@ -1,6 +1,4 @@
-extern "C" {
-    #include <tommath.h>
-}
+#include<tommath.h>
 #include<iostream>
 #include<cstdlib>
 #include<cstring>
