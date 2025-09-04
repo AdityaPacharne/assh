@@ -1,4 +1,4 @@
-# assh(Aditya's SSH) — It's SSH, but ASSh
+# assh (Aditya's SSH) — It's SSH, but ASSh
 
 `assh` is an implementation of SSH...  
 but it's **less secure** and **blazingly fast** due to no additional features :)
