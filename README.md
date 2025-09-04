@@ -1,6 +1,6 @@
-# assh (Aditya's SSH) — It's SSH, but ASSh
+# assh (Aditya's SSH)
 
-`assh` is an implementation of SSH...  
+`assh` is an implementation of SSH in C++ 
 but it's **less secure** and **blazingly fast** due to no additional features :)
 
 But hey, I'm proud of it.
